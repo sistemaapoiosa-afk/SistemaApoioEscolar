@@ -243,9 +243,8 @@ DECLARE
   -- Variáveis internas (não precisa mexer)
   new_id uuid := uuid_generate_v4();
 BEGIN
-  -- Check if admin already exists
+  -- Check if admin already exists in auth.users
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = v_admin_email) THEN
-    
     -- 1. Insert into auth.users (Supabase Auth)
     INSERT INTO auth.users (
       id,
@@ -274,13 +273,74 @@ BEGIN
       'authenticated',
       ''
     );
+    RAISE NOTICE 'Usuário Auth criado: %', v_admin_email;
+  ELSE
+    RAISE NOTICE 'Usuário Auth já existe: %', v_admin_email;
+    SELECT id INTO new_id FROM auth.users WHERE email = v_admin_email;
+  END IF;
 
-    -- 2. Insert into public.Profissionais
+  -- 2. Validate/Fix public.Profissionais profile
+  IF NOT EXISTS (SELECT 1 FROM public."Profissionais" WHERE id = new_id) THEN
     INSERT INTO public."Profissionais" (id, nome, email, tipo, must_change_password)
     VALUES (new_id, 'Administrador', v_admin_email, 'Administrador', true);
-    
-    RAISE NOTICE 'Usuário Admin criado com sucesso: %', v_admin_email;
+    RAISE NOTICE 'Perfil Profissional criado para: %', v_admin_email;
   ELSE
-    RAISE NOTICE 'O usuário Admin (%) já existe. Nada foi feito.', v_admin_email;
+    RAISE NOTICE 'Perfil Profissional já existe para: %', v_admin_email;
+  END IF;
+
+END $$;
+
+-- 4. Seed Initial School Settings
+-- ==============================================================================
+DO $$
+DECLARE
+  escola_id_var uuid;
+BEGIN
+  -- Check if Escola table is empty
+  IF NOT EXISTS (SELECT 1 FROM "Escola" LIMIT 1) THEN
+    -- Insert default school settings
+    INSERT INTO "Escola" (
+      name,
+      "hasNightShift",
+      "lunchColor",
+      "availableWeeks",
+      "semanticColors"
+    ) VALUES (
+      'Sistema de Apoio Escolar',
+      true,
+      '#f97316',
+      2,
+      '{"regular": "#2563eb", "maintenance": "#dc2626", "specialEvent": "#9333ea", "blockedProject": "#d97706"}'::jsonb
+    )
+    RETURNING id INTO escola_id_var;
+    
+    -- Insert corresponding ConfiguracaoLogin entry
+    INSERT INTO "ConfiguracaoLogin" (escola_id, titulo, cores)
+    VALUES (
+      escola_id_var,
+      'Sistema de Apoio Escolar',
+      '{"regular": "#2563eb", "maintenance": "#dc2626", "specialEvent": "#9333ea", "blockedProject": "#d97706"}'::jsonb
+    );
+    
+    RAISE NOTICE 'Configurações iniciais da escola criadas com sucesso.';
+  ELSE
+    RAISE NOTICE 'Configurações da escola já existem. Nada foi feito.';
   END IF;
 END $$;
+
+-- 5. Seed Initial Calendar Events (Optional)
+-- ==============================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM "CalendarioLetivo" LIMIT 1) THEN
+    INSERT INTO "CalendarioLetivo" (title, date, type, description)
+    VALUES 
+      ('Início das Aulas', CURRENT_DATE + INTERVAL '7 days', 'academic', 'Início do ano letivo'),
+      ('Reunião de Pais', CURRENT_DATE + INTERVAL '14 days', 'event', 'Apresentação da escola'),
+      ('Feriado Nacional', CURRENT_DATE + INTERVAL '30 days', 'holiday', 'Feriado previsto');
+      
+    RAISE NOTICE 'Eventos do calendário criados com sucesso.';
+  END IF;
+END $$;
+
+

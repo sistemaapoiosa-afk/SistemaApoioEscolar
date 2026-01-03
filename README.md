@@ -2,13 +2,10 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Sistema de Apoio Escolar
 
-This contains everything you need to run your app locally.
-
-> **Quer implantar este projeto?** Veja o guia completo em [DEPLOY.md](./DEPLOY.md).
-
-View your app in AI Studio: https://ai.studio/apps/drive/1VdH2YcwGg_7S_QvsExQmDPoBWIFGz0Wp
+> **🚀 Guia de Instalação e Deploy:**  
+> Para aprender a instalar, configurar o banco de dados e publicar este projeto, leia o **[Guia de Implantação (DEPLOY_GUIDE.md)](DEPLOY_GUIDE.md)**.
 
 ## Run Locally
 
