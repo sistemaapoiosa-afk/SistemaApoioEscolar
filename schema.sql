@@ -1,5 +1,6 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 
 -- 1. Escola (Settings)
 create table "Escola" (
@@ -31,7 +32,8 @@ create table "Profissionais" (
   email text,
   foto text,
   tipo text check (tipo in ('Administrador', 'Coordenador', 'Professor', 'Colaborador')),
-  alias text
+  alias text,
+  must_change_password boolean default false
 );
 
 -- 4. Recursos (Resources)
@@ -226,3 +228,59 @@ create policy "User Delete Own Prefs" on "PreferenciasUsuario" for delete using 
 -- Students data is sensitive, should not be public.
 create policy "Auth Read Alunos" on "Alunos" for select using (auth.role() = 'authenticated');
 create policy "Auth All Alunos" on "Alunos" for all using (auth.role() = 'authenticated');
+
+-- 3. Seed Initial Admin User
+-- ==============================================================================
+DO $$
+DECLARE
+  -- ===========================================================================
+  -- CONFIGURAÇÃO DO PRIMEIRO USUÁRIO (ADMIN)
+  -- Edite as variáveis abaixo antes de executar o script.
+  -- ===========================================================================
+  v_admin_email text := 'admin@escola.com';  -- ⚠️ COLOQUE SEU EMAIL AQUI
+  v_admin_pass  text := '123456';            -- ⚠️ COLOQUE SUA SENHA AQUI
+  
+  -- Variáveis internas (não precisa mexer)
+  new_id uuid := uuid_generate_v4();
+BEGIN
+  -- Check if admin already exists
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = v_admin_email) THEN
+    
+    -- 1. Insert into auth.users (Supabase Auth)
+    INSERT INTO auth.users (
+      id,
+      instance_id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      created_at,
+      updated_at,
+      role,
+      aud,
+      confirmation_token
+    ) VALUES (
+      new_id,
+      '00000000-0000-0000-0000-000000000000',
+      v_admin_email,
+      crypt(v_admin_pass, gen_salt('bf')),
+      now(),
+      '{"provider": "email", "providers": ["email"]}'::jsonb,
+      '{}'::jsonb,
+      now(),
+      now(),
+      'authenticated',
+      'authenticated',
+      ''
+    );
+
+    -- 2. Insert into public.Profissionais
+    INSERT INTO public."Profissionais" (id, nome, email, tipo, must_change_password)
+    VALUES (new_id, 'Administrador', v_admin_email, 'Administrador', true);
+    
+    RAISE NOTICE 'Usuário Admin criado com sucesso: %', v_admin_email;
+  ELSE
+    RAISE NOTICE 'O usuário Admin (%) já existe. Nada foi feito.', v_admin_email;
+  END IF;
+END $$;
