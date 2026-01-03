@@ -145,12 +145,84 @@ create table "Alunos" (
 -- Bucket: 'logos' (public)
 -- Bucket: 'attachments' (private/authenticated?)
 
--- RLS Policies (Basic examples - User should refine)
+-- RLS Policies
+-- ==============================================================================
+
+-- 1. Enable RLS on all tables
 alter table "Escola" enable row level security;
-create policy "Public Read Escola" on "Escola" for select using (true);
-create policy "Admin Update Escola" on "Escola" for update using (auth.role() = 'authenticated'); -- Simplification
-
+alter table "ConfiguracaoLogin" enable row level security;
 alter table "Profissionais" enable row level security;
-create policy "Public Read Profissionais" on "Profissionais" for select using (true);
+alter table "Recursos" enable row level security;
+alter table "Turmas" enable row level security;
+alter table "Disciplinas" enable row level security;
+alter table "Horarios" enable row level security;
+alter table "HorarioTurmas" enable row level security;
+alter table "HorarioComplementar" enable row level security;
+alter table "CalendarioLetivo" enable row level security;
+alter table "Links" enable row level security;
+alter table "PreferenciasUsuario" enable row level security;
+alter table "Alunos" enable row level security;
 
--- ... (Add more RLS as needed, but for now this schema allows the app to run)
+-- 2. Define Policies
+
+-- GROUP A: Public Read / Authenticated Write
+-- Tables: Escola, ConfiguracaoLogin, Profissionais, Recursos, Turmas, Disciplinas, 
+--         Horarios, HorarioTurmas, HorarioComplementar, CalendarioLetivo, Links
+
+-- Escola
+create policy "Public Read Escola" on "Escola" for select using (true);
+create policy "Auth All Escola" on "Escola" for all using (auth.role() = 'authenticated');
+
+-- ConfiguracaoLogin
+create policy "Public Read ConfiguracaoLogin" on "ConfiguracaoLogin" for select using (true);
+create policy "Auth All ConfiguracaoLogin" on "ConfiguracaoLogin" for all using (auth.role() = 'authenticated');
+
+-- Profissionais (Public read needed for schedules/directory)
+create policy "Public Read Profissionais" on "Profissionais" for select using (true);
+create policy "Auth All Profissionais" on "Profissionais" for all using (auth.role() = 'authenticated');
+
+-- Recursos
+create policy "Public Read Recursos" on "Recursos" for select using (true);
+create policy "Auth All Recursos" on "Recursos" for all using (auth.role() = 'authenticated');
+
+-- Turmas
+create policy "Public Read Turmas" on "Turmas" for select using (true);
+create policy "Auth All Turmas" on "Turmas" for all using (auth.role() = 'authenticated');
+
+-- Disciplinas
+create policy "Public Read Disciplinas" on "Disciplinas" for select using (true);
+create policy "Auth All Disciplinas" on "Disciplinas" for all using (auth.role() = 'authenticated');
+
+-- Horarios
+create policy "Public Read Horarios" on "Horarios" for select using (true);
+create policy "Auth All Horarios" on "Horarios" for all using (auth.role() = 'authenticated');
+
+-- HorarioTurmas
+create policy "Public Read HorarioTurmas" on "HorarioTurmas" for select using (true);
+create policy "Auth All HorarioTurmas" on "HorarioTurmas" for all using (auth.role() = 'authenticated');
+
+-- HorarioComplementar
+create policy "Public Read HorarioComplementar" on "HorarioComplementar" for select using (true);
+create policy "Auth All HorarioComplementar" on "HorarioComplementar" for all using (auth.role() = 'authenticated');
+
+-- CalendarioLetivo
+create policy "Public Read CalendarioLetivo" on "CalendarioLetivo" for select using (true);
+create policy "Auth All CalendarioLetivo" on "CalendarioLetivo" for all using (auth.role() = 'authenticated');
+
+-- Links
+create policy "Public Read Links" on "Links" for select using (true);
+create policy "Auth All Links" on "Links" for all using (auth.role() = 'authenticated');
+
+-- GROUP B: Private / Sensitive Data
+-- Tables: PreferenciasUsuario, Alunos
+
+-- PreferenciasUsuario (Owner Access Only)
+create policy "User View Own Prefs" on "PreferenciasUsuario" for select using (auth.uid() = user_id);
+create policy "User Update Own Prefs" on "PreferenciasUsuario" for update using (auth.uid() = user_id);
+create policy "User Insert Own Prefs" on "PreferenciasUsuario" for insert with check (auth.uid() = user_id);
+create policy "User Delete Own Prefs" on "PreferenciasUsuario" for delete using (auth.uid() = user_id);
+
+-- Alunos (Authenticated Users Only - Staff/Teachers)
+-- Students data is sensitive, should not be public.
+create policy "Auth Read Alunos" on "Alunos" for select using (auth.role() = 'authenticated');
+create policy "Auth All Alunos" on "Alunos" for all using (auth.role() = 'authenticated');
