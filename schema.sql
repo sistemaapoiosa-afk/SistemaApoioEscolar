@@ -381,66 +381,14 @@ VALUES (
 ON CONFLICT (ano) DO NOTHING;
 
 
--- 3. Seed Initial Admin User
+-- 3. Admin User Setup
 -- ==============================================================================
-DO $$
-DECLARE
-  -- ===========================================================================
-  -- CONFIGURAÇÃO DO PRIMEIRO USUÁRIO (ADMIN)
-  -- Edite as variáveis abaixo antes de executar o script.
-  -- ===========================================================================
-  v_admin_email text := 'admin@escola.com';  -- ⚠️ COLOQUE SEU EMAIL AQUI
-  v_admin_pass  text := '123456';            -- ⚠️ COLOQUE SUA SENHA AQUI
-  
-  -- Variáveis internas (não precisa mexer)
-  new_id uuid := uuid_generate_v4();
-BEGIN
-  -- Check if admin already exists in auth.users
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = v_admin_email) THEN
-    -- 1. Insert into auth.users (Supabase Auth)
-    INSERT INTO auth.users (
-      id,
-      instance_id,
-      email,
-      encrypted_password,
-      email_confirmed_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      created_at,
-      updated_at,
-      role,
-      aud,
-      confirmation_token
-    ) VALUES (
-      new_id,
-      '00000000-0000-0000-0000-000000000000',
-      v_admin_email,
-      crypt(v_admin_pass, gen_salt('bf')),
-      now(),
-      '{"provider": "email", "providers": ["email"]}'::jsonb,
-      '{}'::jsonb,
-      now(),
-      now(),
-      'authenticated',
-      'authenticated',
-      ''
-    );
-    RAISE NOTICE 'Usuário Auth criado: %', v_admin_email;
-  ELSE
-    RAISE NOTICE 'Usuário Auth já existe: %', v_admin_email;
-    SELECT id INTO new_id FROM auth.users WHERE email = v_admin_email;
-  END IF;
-
-  -- 2. Validate/Fix public.Profissionais profile
-  IF NOT EXISTS (SELECT 1 FROM public."Profissionais" WHERE id = new_id) THEN
-    INSERT INTO public."Profissionais" (id, nome, email, tipo, must_change_password)
-    VALUES (new_id, 'Administrador', v_admin_email, 'Administrador', true);
-    RAISE NOTICE 'Perfil Profissional criado para: %', v_admin_email;
-  ELSE
-    RAISE NOTICE 'Perfil Profissional já existe para: %', v_admin_email;
-  END IF;
-
-END $$;
+-- O usuário Admin deve ser criado manualmente no painel do Supabase:
+-- 1. Vá em Authentication > Users > Add User
+-- 2. Crie um usuário com seu email e senha.
+-- 3. O trigger 'handle_new_user' irá criar automaticamente o perfil em 'Profissionais'.
+-- 4. Para dar permissão de ADMIN, rode no SQL Editor:
+--    UPDATE "Profissionais" SET tipo = 'Administrador' WHERE email = 'seu@email.com';
 
 -- 4. Seed Initial School Settings
 -- ==============================================================================
