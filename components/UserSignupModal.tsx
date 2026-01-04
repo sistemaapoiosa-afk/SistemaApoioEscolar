@@ -50,6 +50,8 @@ export const UserSignupModal: React.FC<UserSignupModalProps> = ({ isOpen, onClos
                 options: {
                     data: {
                         nome: name,
+                        full_name: name, // Add standard field
+                        name: name,      // Add standard field
                         tipo: role
                     }
                 }
